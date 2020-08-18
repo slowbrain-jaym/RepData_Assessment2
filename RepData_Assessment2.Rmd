@@ -1,0 +1,61 @@
+---
+title: "Comparison of the Economic and Public Health Damage Caused by Weather Events"
+author: "Jamie Davidson"
+date: "13/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+Complete this
+
+## Data Processing
+First we load packages required for the analysis, followed by loading the zipped data into R. Some tidying is required for the analysis, first the PROPDMG and PROPDMGEXP are combined to give damage to property in a single variable "cost". Secondly a more complex operation attempts to combine data points with similar EVTYPE entries, as many entries to the data describe the same event type but with different spellings or word orders, for example "thunderstorm" and "tstm" have identical meanings. The search term vector contains terms to look for in the EVTYPE column while category contains the string to replce each entry with. 
+
+```{r cache=TRUE, echo = TRUE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+
+alldata<-read.csv("repdata_data_StormData.csv.bz2") %>%
+  mutate(PROPDMGEXP = toupper(PROPDMGEXP)) %>%
+  mutate(cost_multiplier = ifelse(PROPDMGEXP == "K", 1000, 
+                                  ifelse(PROPDMGEXP == "M", 1000000, 
+                                         ifelse(PROPDMGEXP == "B", 
+                                                1000000000, 0)))) %>%
+  mutate(cost = PROPDMG*cost_multiplier) %>%
+  mutate(casualties = FATALITIES + INJURIES)
+
+alldata <- mutate(alldata, EVTYPE = tolower(EVTYPE))
+
+search_terms <- c("fire", "wind", "winter", "thunderstorm", "tstm", "lightning",
+                  "avalanche", "snow", "blizzard", "cold", "fog", "dust", 
+                  "heat", "flood", "hail", "rain", "surf", "hurricane", "ice", 
+                  "current", "tornado")
+categories <- c("fire", "wind", "winter", "thunderstorm", "thunderstorm", 
+                "thunderstorm", "avalanche", "snow", "snow", "cold", "fog", 
+                "dust", "heat", "flood", "hail", "rain", "surf", "hurricane", 
+                "ice", "current", "tornado")
+
+alldata$category <- alldata$EVTYPE
+
+for (i in seq(1, length(search_terms))){
+  search_term <- paste(".*",search_terms[i],".*",sep="")
+  category_name <- paste(categories[i],sep="")
+  alldata$category <- gsub(search_term, category_name, alldata$category)
+}
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
